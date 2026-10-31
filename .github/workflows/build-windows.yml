@@ -42,3 +42,64 @@ jobs:
             dist/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_ID: ${{ github.run_id }}
+      RELEASE_TAG: ${{ github.ref_name }}
+      SOURCE_COMMIT: ${{ github.sha }}
+    steps:
+      - name: Download this run's tested Windows build
+        run: gh run download "$RUN_ID" --repo "$GH_REPO" --name StereoAudioManager-Windows-x64 --dir release
+      - name: Verify release version, source commit and executable hash
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, re
+          root = pathlib.Path('release')
+          info = json.loads((root / 'build-info.json').read_text(encoding='utf-8'))
+          tag = os.environ['RELEASE_TAG']
+          if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', tag):
+              raise SystemExit('Release tag must be vMAJOR.MINOR.PATCH')
+          if tag != 'v' + info['version'] or info['commit'] != os.environ['SOURCE_COMMIT']:
+              raise SystemExit('Release tag/source commit does not match the tested build')
+          digest = hashlib.sha256((root / 'StereoAudioManager.exe').read_bytes()).hexdigest()
+          if digest != info['exe_sha256']:
+              raise SystemExit('Executable SHA-256 mismatch')
+          if (root / 'SHA256SUMS.txt').read_text(encoding='ascii').strip() != digest + '  StereoAudioManager.exe':
+              raise SystemExit('Checksum file mismatch')
+          print('Verified release:', tag, 'commit:', info['commit'], 'SHA-256:', digest)
+          PY
+      - name: Package release download and notes
+        working-directory: release
+        shell: bash
+        run: |
+          zip StereoAudioManager-Windows-x64.zip StereoAudioManager.exe build-info.json SHA256SUMS.txt
+          sha256sum StereoAudioManager-Windows-x64.zip > StereoAudioManager-Windows-x64.zip.sha256
+          cat > release-notes.md <<'NOTES'
+          Windows x64 版本，由 GitHub Actions 完成回归测试和构建后发布。
+
+          - 推荐下载 `StereoAudioManager-Windows-x64.zip`，解压后运行 `StereoAudioManager.exe`。
+          - 也可直接下载下面的 EXE 文件。
+          - `build-info.json` 记录版本、源码提交和 EXE SHA-256；校验文件可用于核对下载完整性。
+          NOTES
+      - name: Publish tested assets to Releases
+        run: |
+          gh release create "$RELEASE_TAG" \
+            release/StereoAudioManager.exe \
+            release/StereoAudioManager-Windows-x64.zip \
+            release/StereoAudioManager-Windows-x64.zip.sha256 \
+            release/build-info.json \
+            release/SHA256SUMS.txt \
+            --repo "$GH_REPO" --verify-tag --latest \
+            --title "立体音管理工具 $RELEASE_TAG" --notes-file release/release-notes.md

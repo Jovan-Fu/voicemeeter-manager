@@ -2,7 +2,7 @@
 
 Windows 上的 VoiceMeeter Banana 配置、隐藏自启动、默认声音设备和 Chrome 音频设置工具。
 
-2.1.5 修复真实 GitHub Actions 第 7 次运行暴露的路径兼容问题：Runner 的 `RUNNER~1` 短路径与快捷方式读回的 `runneradmin` 长路径指向同一文件，自启动检测现在先统一路径再比较。快捷方式往返测试按文件身份核对目标，不要求返回文本完全相同。新增真实 8.3 短路径及扩展路径回归，88 项测试通过。原工作流中 Python 设置、依赖安装均已在 GitHub 成功，失败发生在两项旧路径测试；本修复包上传后的远端构建结果仍待确认。详情见 `BUILD-FIX-2.1.5.html`。
+2.1.5 修复真实 GitHub Actions 第 7 次运行暴露的路径兼容问题：Runner 的 `RUNNER~1` 短路径与快捷方式读回的 `runneradmin` 长路径指向同一文件，自启动检测现在先统一路径再比较。快捷方式往返测试按文件身份核对目标，不要求返回文本完全相同。新增真实 8.3 短路径及扩展路径回归，88 项本地测试通过，修复后真实 GitHub 构建也已成功。`BUILD-FIX-2.1.5.html` 保留修复时的验证快照。
 
 2.1.4 在已确认工作的 2.1.3 上修复安全审核问题。内置预设保持原文件不变：第四列“通道1”为 A1+B1，第五列“通道2”为 A1+B2；保留完整自动结束、隐藏重开和载入核验流程。自定义导入 XML 仍按文件内容载入。
 
@@ -19,7 +19,7 @@ Windows 上的 VoiceMeeter Banana 配置、隐藏自启动、默认声音设备�
 3. 流程测试通过后打包 `StereoAudioManager.exe`，无需编译或分发额外音频助手。
 4. 在成功任务底部 **Artifacts** 下载 `StereoAudioManager-Windows-x64`，解压运行。包内还有 `build-info.json` 和 `SHA256SUMS.txt`，记录源码摘要、Python/PyInstaller 版本、提交号和 EXE SHA-256。
 
-当前工作流生成 Actions 构建产物，不自动创建公开 Release，也不上传到其他服务。产物保留 30 天。新建仓库若禁用了 Actions，需先启用。Actions 使用固定提交摘要；Dependabot 按月提出更新。
+普通提交和 PR 生成 Actions 构建产物，保留 30 天。推送 `v2.1.5` 这样的版本标签时，测试和 Windows 构建通过后自动发布到 **Releases**，附带 EXE、便携 ZIP、构建信息和校验文件。标签版本必须与 `tools/build.py` 中的应用版本一致，产物源码提交与哈希须核验通过；发布任务单独获得仓库内容写入权限。新建仓库若禁用了 Actions，需先启用。Actions 使用固定提交摘要；Dependabot 按月提出更新。
 
 构建机制参考 [GitHub Python 工作流文档](https://docs.github.com/en/actions/tutorials/build-and-test-code/python) 和 [upload-artifact 官方说明](https://github.com/actions/upload-artifact)。
 
@@ -96,6 +96,6 @@ Chrome 自动导航增加浏览器窗口类型和修饰键检查；SendInput 仍
 
 读取设备使用微软公开的 MMDevice/IPropertyStore 接口。设置默认设备沿用 Windows IPolicyConfig 接口，只在明确点击设置时创建；它不是微软公开承诺稳定的接口，未来系统不支持时会明确报错。参考：[MMDeviceEnumerator](https://learn.microsoft.com/en-us/windows/win32/api/mmdeviceapi/nn-mmdeviceapi-immdeviceenumerator)。
 
-已读取用户仓库真实 GitHub Actions 第 7 次失败日志，定位并修复两项路径断言/检测失败；尚未将 2.1.5 上传仓库，因此未取得修复后远端构建成功记录。请以上传后工作流结果为准。此源码包不包含预生成 EXE。
+已读取用户仓库真实 GitHub Actions 第 7 次失败日志并修复路径兼容问题；[2.1.5 修复后的真实 GitHub 构建](https://github.com/Jovan-Fu/voicemeeter-manager/actions/runs/41238728622)已通过测试、打包和产物上传。本地交付源码不包含预生成 EXE，公开 EXE 由版本标签触发的 GitHub 工作流生成并发布。
 
 GitHub 自动构建并不等于数字签名或杀毒认证，不能保证消除杀毒告警。截图只能确认安全软件在消毒，无法确定具体检出对象和分类；发生告警时保留检出名称/路径/哈希供核查，不要关闭防护。

@@ -1,4 +1,6 @@
 import json
+import ctypes
+from ctypes import wintypes
 import os
 from pathlib import Path
 import subprocess
@@ -33,7 +35,7 @@ class LogicTests(unittest.TestCase):
         args = '-L"C:\\My Documents\\settings.xml" -h'
         write_shortcut(link, str(self.exe), args)
         read = read_shortcut(link)
-        self.assertEqual(read['target'], str(self.exe))
+        self.assertTrue(os.path.samefile(read['target'], self.exe))
         self.assertEqual(read['arguments'], args)
         self.assertTrue(startup.is_hidden(read['arguments']))
 
@@ -45,6 +47,31 @@ class LogicTests(unittest.TestCase):
         self.assertTrue(state['enabled'])
         self.assertTrue(state['hidden'])
         self.assertEqual(state['entries'][0]['name'], startup.NATIVE_LINK)
+
+    def check_existing_alias_startup(self, alias):
+        write_shortcut(self.root / startup.NATIVE_LINK, str(self.exe), '-h')
+        with patch.object(startup, 'startup_folders', return_value=[(winreg.HKEY_CURRENT_USER, self.root)]), patch.object(startup, '_approved', return_value=True), patch.object(startup.winreg, 'OpenKey', side_effect=FileNotFoundError), patch.object(startup, 'write_shortcut') as write:
+            state = startup.inspect_startup([alias])
+            self.assertTrue(state['enabled'], state)
+            self.assertTrue(state['hidden'], state)
+            self.assertTrue(startup.ensure_hidden_startup([alias], alias)[0])
+            write.assert_not_called()
+
+    def test_existing_startup_extended_path_alias_does_not_create_duplicate(self):
+        self.check_existing_alias_startup('\\\\?\\' + str(self.exe.resolve()))
+
+    def test_existing_startup_short_path_alias_does_not_create_duplicate(self):
+        kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+        kernel.GetShortPathNameW.argtypes = [wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD]
+        kernel.GetShortPathNameW.restype = wintypes.DWORD
+        short = ctypes.create_unicode_buffer(32768)
+        if not kernel.GetShortPathNameW(str(self.exe), short, len(short)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        # 8.3 names may be disabled on developer volumes. Extended-path coverage
+        # above remains mandatory; GitHub's RUNNER~1 exercises the short alias.
+        if os.path.normcase(short.value) == os.path.normcase(str(self.exe.resolve())):
+            self.skipTest('This volume has no 8.3 alias for the temporary fixture')
+        self.check_existing_alias_startup(short.value)
 
     def test_unrelated_link_with_familiar_filename_not_treated_as_enabled(self):
         write_shortcut(self.root / startup.NATIVE_LINK, 'C:\\Windows\\notepad.exe', '-h')

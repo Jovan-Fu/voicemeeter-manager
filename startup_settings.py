@@ -47,7 +47,14 @@ def startup_folders():
 
 
 def _normalized(path):
-    return os.path.normcase(os.path.abspath(os.path.expandvars(path)))
+    # Shell Link returns long paths even when Windows TEMP/Run uses an 8.3
+    # alias (e.g. RUNNER~1). Resolve aliases before comparing executable paths.
+    resolved = os.path.realpath(os.path.expandvars(path))
+    if resolved[:8].casefold() == '\\\\?\\unc\\':
+        resolved = '\\\\' + resolved[8:]
+    elif resolved.startswith('\\\\?\\') and resolved[5:7] == ':\\':
+        resolved = resolved[4:]
+    return os.path.normcase(resolved)
 
 
 def _approved(root, category, name):

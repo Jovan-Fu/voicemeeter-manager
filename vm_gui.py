@@ -37,7 +37,7 @@ THEME_COLORS = {
 class VoiceMeeterManagerApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("立体音管理工具 · 2.1.4")
+        self.root.title("立体音管理工具 · 2.1.5")
         self.root.geometry("880x760")
         self.root.minsize(820, 680)
 

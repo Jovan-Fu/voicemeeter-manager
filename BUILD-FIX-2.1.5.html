@@ -1,0 +1,9 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>2.1.5 GitHub 构建修复</title>
+<style>body{font:16px/1.7 "Microsoft YaHei",sans-serif;margin:32px;color:#17304d}table{border-collapse:collapse;width:100%}th,td{border:1px solid #c9d6e5;padding:12px;text-align:left}th{background:#e9f1fa}code{overflow-wrap:anywhere}</style>
+<h1>2.1.5：GitHub 自动构建失败修复</h1><p>已核对真实 <a href="https://github.com/Jovan-Fu/voicemeeter-manager/actions/runs/41231991669/job/124627957537">第 7 次运行日志</a>。Python 3.14.10 设置和 7 个构建依赖安装成功；86 项测试中有两项失败，后续打包被跳过。</p>
+<table><tr><th>编号</th><th>类别</th><th>严重级别</th><th>位置</th><th>状态</th></tr>
+<tr><td>BUILD-01</td><td>路径兼容</td><td>Low / 阻断构建</td><td>startup_settings.py：_normalized；tests/test_logic.py：快捷方式测试</td><td>本地已修复；修复后远端构建待上传确认</td></tr></table>
+<p>GitHub 的 C:\Users\RUNNER~1 与快捷方式返回的 C:\Users\runneradmin 指向同一个文件。旧代码只处理大小写和绝对路径，无法识别 8.3 别名，导致自启动漏识别；测试又错误要求目标文本完全相等。</p>
+<p>修复：比较前解析路径别名，统一普通/扩展路径前缀；快捷方式目标用 samefile 核对文件身份，参数仍精确比较。新增真实 8.3 短路径和扩展路径回归，已存在的隐藏自启动不重复写入。用旧比较逻辑运行新短路径回归可复现失败，修复后本地 88 项全部通过，无跳过。</p>
+<p>音频预设及一键载入、结束/重启、60 项读回、安全安装、锁定依赖和 GitHub 工作流均保持 2.1.4 文件不变。本次未生成 EXE、未改变本机自启动或声音设置，未向 GitHub 提交代码。</p>
+<p>上传压缩包中的全部文件到仓库根目录（包括 .github、tests、tools），覆盖同名文件后提交；GitHub 自动开始新构建。直接重跑旧提交不会应用此修复。请勿同时合并尚未验证的 Dependabot 分支。</p></html>

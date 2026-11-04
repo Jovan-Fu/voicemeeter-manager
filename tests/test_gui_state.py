@@ -23,6 +23,21 @@ class GuiStateTests(unittest.TestCase):
         with patch.object(vm_gui.vm_manager, 'get_system_status', return_value=data), patch.object(vm_gui.vm_manager, 'check_vbcable_installed', return_value=None), patch.object(vm_gui.vm_manager, 'check_vac_installed', return_value=None):
             self.app.refresh_vm_status()
 
+    def test_declining_existing_banana_upgrade_does_not_start_installer(self):
+        with patch.object(vm_gui.vm_manager, 'get_installed_exe', return_value='banana.exe'), patch.object(vm_gui.messagebox, 'askyesno', return_value=False), patch.object(vm_gui.threading, 'Thread') as worker:
+            self.app.on_install_vm_winget()
+            worker.assert_not_called()
+
+    def test_existing_banana_upgrade_passes_explicit_consent_to_backend(self):
+        class ImmediateWorker:
+            def __init__(self, target, **kwargs):
+                self.target = target
+            def start(self):
+                self.target()
+        with patch.object(vm_gui.vm_manager, 'get_installed_exe', return_value='banana.exe'), patch.object(vm_gui.messagebox, 'askyesno', return_value=True), patch.object(vm_gui.threading, 'Thread', ImmediateWorker), patch.object(vm_gui.vm_manager, 'install_voicemeeter', return_value=(True, 'complete')) as install, patch.object(self.root, 'after'):
+            self.app.on_install_vm_winget()
+            install.assert_called_once_with(method='winget', upgrade_existing=True)
+
     def test_existing_hidden_startup_disables_redundant_action(self):
         self.render_startup(True, True, [dict(enabled=True)])
         self.assertEqual(str(self.app.btn_enable_autostart['state']), 'disabled')

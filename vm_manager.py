@@ -522,7 +522,7 @@ def install_vac(progress_callback=None):
 
 
 @exclusive_operation
-def install_voicemeeter(installer_path=None, method="auto"):
+def install_voicemeeter(installer_path=None, method="auto", upgrade_existing=False):
     """安装 VoiceMeeter"""
     possible_installers = []
     if installer_path and os.path.exists(installer_path):
@@ -545,22 +545,33 @@ def install_voicemeeter(installer_path=None, method="auto"):
 
     if method in ("winget", "auto"):
         try:
+            installed = get_installed_exe()
+            if installed and not upgrade_existing:
+                return True, "已检测到 VoiceMeeter Banana，保留现有安装，未重复安装或升级。\n如需升级，请在 WinGet 安装/升级按钮中明确确认。"
             winget_cmd = [
                 os.path.join(os.environ["LOCALAPPDATA"], "Microsoft", "WindowsApps", "winget.exe"),
-                "install", "-e", "--id", "VB-Audio.Voicemeeter", "--source", "winget",
+                "upgrade" if upgrade_existing else "install", "-e", "--id", "VB-Audio.Voicemeeter.Banana", "--source", "winget",
                 "--accept-source-agreements", "--accept-package-agreements",
-                "--silent"
+                "--silent", "--include-unknown" if upgrade_existing else "--no-upgrade"
             ]
             proc = subprocess.run(
                 winget_cmd,
                 capture_output=True,
-                text=True,
+                text=True, encoding="utf-8", errors="replace",
                 creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
             )
             if proc.returncode == 0:
-                return True, "已通过 Windows Winget 成功安装 VoiceMeeter！\n提示: 虚拟音频驱动需要重启生效。"
+                if not get_installed_exe():
+                    return False, "WinGet 已正常结束，但尚未检测到 VoiceMeeter Banana 主程序。\n请检查安装结果；若安装器要求重启，请重启后再检测。"
+                return True, "WinGet 已完成 VoiceMeeter Banana 的" + ("升级" if upgrade_existing else "安装") + "，并检测到主程序。\n提示：虚拟音频驱动可能需要重启后生效。"
             else:
-                return False, f"Winget 安装失败 (代码 {proc.returncode}):\n{proc.stdout or proc.stderr}"
+                code = proc.returncode & 0xffffffff
+                details = "\n".join(part.strip() for part in (proc.stdout, proc.stderr) if part and part.strip())
+                if code == 0x8A15002B:
+                    if get_installed_exe():
+                        return True, "WinGet 未执行更新；已检测到现有 VoiceMeeter Banana，现有安装保留。\n这不表示升级或修复成功；需要重新安装时可使用官网本地安装向导。\n" + details
+                    return False, "WinGet 检测到已有安装记录，但未找到可用的 Banana 主程序。\n请使用官网本地安装包完成修复，然后重新检测；不要关闭安全软件。\n" + details
+                return False, f"WinGet {'升级' if upgrade_existing else '安装'}失败（代码 0x{code:08X}）：\n{details}"
         except Exception as e:
             return False, f"Winget 执行失败: {str(e)}"
 

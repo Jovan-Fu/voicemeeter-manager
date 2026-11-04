@@ -37,7 +37,7 @@ THEME_COLORS = {
 class VoiceMeeterManagerApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("立体音管理工具 · 2.1.5")
+        self.root.title("立体音管理工具 · 2.1.6")
         self.root.geometry("880x760")
         self.root.minsize(820, 680)
 
@@ -702,7 +702,7 @@ class VoiceMeeterManagerApp:
         row1.pack(fill=tk.X, pady=4)
         ttk.Label(row1, text="1. VoiceMeeter Banana 主程序:", style="SubHeader.TLabel", width=28).pack(side=tk.LEFT)
         ttk.Button(row1, text="验证本地官网安装包", style="Action.TButton", command=self.on_install_vm_local).pack(side=tk.LEFT, padx=3)
-        ttk.Button(row1, text="Winget 一键安装", style="Action.TButton", command=self.on_install_vm_winget).pack(side=tk.LEFT, padx=3)
+        ttk.Button(row1, text="WinGet 安装/升级", style="Action.TButton", command=self.on_install_vm_winget).pack(side=tk.LEFT, padx=3)
 
         # 2. VB-CABLE
         row2 = ttk.Frame(pkg_box)
@@ -1326,12 +1326,17 @@ class VoiceMeeterManagerApp:
         threading.Thread(target=run, daemon=True).start()
 
     def on_install_vm_winget(self):
-        confirm = messagebox.askyesno("确认", "是否使用 Windows Winget 自动安装 VoiceMeeter？")
+        installed = vm_manager.get_installed_exe()
+        upgrade_existing = bool(installed)
+        if installed:
+            confirm = messagebox.askyesno("已安装 VoiceMeeter Banana", "已经检测到 Banana 主程序。\n是否使用 WinGet 检查并升级现有安装？\n\n选择“是”：明确允许当前版本未知时尝试升级，期间可能中断音频，完成后可能需要重启。\n选择“否”：保留现有安装，不重复安装。")
+        else:
+            confirm = messagebox.askyesno("确认安装 Banana", "是否使用 Windows WinGet 安装 VoiceMeeter Banana？\n\n如果存在旧安装记录但主程序缺失，请使用官网本地安装包完成修复。")
         if not confirm:
             return
-        self.log("正在使用 Winget 安装 VoiceMeeter...")
+        self.log("正在使用 WinGet " + ("升级" if upgrade_existing else "安装") + " VoiceMeeter Banana...")
         def run():
-            success, msg = vm_manager.install_voicemeeter(method="winget")
+            success, msg = vm_manager.install_voicemeeter(method="winget", upgrade_existing=upgrade_existing)
             self.root.after(0, lambda: self._install_finished(success, msg))
         threading.Thread(target=run, daemon=True).start()
 

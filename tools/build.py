@@ -36,7 +36,7 @@ def build():
         raise RuntimeError('Expected executable missing after build')
     import PyInstaller
     sources = sorted([p for p in ROOT.glob('*.py')] + [ROOT / 'sample_config.xml', ROOT / 'VoiceMeeterManager_Single.spec', ROOT / 'requirements-build.txt'])
-    info = {'version': '2.1.5', 'python': platform.python_version(), 'pyinstaller': PyInstaller.__version__,
+    info = {'version': '2.1.6', 'python': platform.python_version(), 'pyinstaller': PyInstaller.__version__,
             'commit': os.environ.get('GITHUB_SHA'),
             'exe_sha256': hashlib.sha256(executable.read_bytes()).hexdigest(),
             'source_sha256': {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}}

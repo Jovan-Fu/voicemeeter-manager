@@ -1,3 +1,12 @@
+# 2.1.6 — 2026-11-04
+
+- WinGet 包由普通版 VB-Audio.Voicemeeter 改为 VB-Audio.Voicemeeter.Banana，对应微软官方 Banana 清单。
+- 已安装 Banana 时默认保留；界面明确确认后才使用 upgrade --include-unknown，首次安装使用 install --no-upgrade，避免隐式升级。
+- 正确识别 0x8A15002B 的有符号/无符号返回值，保留原始输出；无更新、残留安装记录和安装成功分别提示。
+- 成功退出后再次检查 Banana 主程序；保留安装器哈希安全校验，不使用 --force 或忽略安全检查参数。
+- 新增 9 项安装/界面决策回归，合计 97 项通过；原有预设与音频载入流程保持。
+- 依据：[WinGet 安装](https://learn.microsoft.com/en-us/windows/package-manager/winget/install)、[WinGet 升级](https://learn.microsoft.com/en-us/windows/package-manager/winget/upgrade)、[微软 Banana 清单](https://github.com/microsoft/winget-pkgs/tree/master/manifests/v/VB-Audio/Voicemeeter/Banana)。
+
 # 2.1.5 — 2026-10-31
 
 - 根据真实 GitHub Actions #7 日志，修复 RUNNER~1 短路径与 Shell Link 长路径不一致导致的自启动漏识别。
